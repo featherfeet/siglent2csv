@@ -35,6 +35,33 @@ void cleanup() {
     }
 }
 
+const char *units_magnitude_prefixes[] = {"y", "z", "a", "f", "p", "n", "u", "m", "", "k", "M", "G", "T", "P"};
+
+const char *units_names[] = {"V", "A", "VV", "AA", "OU", "W", "SQRT_V", "SQRT_A", "INTEGRAL_V", "INTEGRAL_A", "DT_V", "DT_A", "DT_DIV", "Hz", "s", "PTS", "NULL", "dB", "dBV", "dBA", "VPP", "VDC", "dBM"};
+
+double unit_dividers[] = {1.0e24, 1.0e21, 1.0e18, 1.0e15, 1.0e12, 1.0e9, 1.0e6, 1.0e3, 1.0e0, 1.0e-3, 1.0e-6, 1.0e-9, 1.0e-12, 1.0e-15};
+
+const char *unit_magnitude_prefix(uint32_t magnitude) {
+    if (magnitude < sizeof(units_magnitude_prefixes) / sizeof(const char *)) {
+        return units_magnitude_prefixes[magnitude];
+    }
+    return "";
+}
+
+const char *unit_name(uint32_t unit) {
+    if (unit < sizeof(units_names) / sizeof(const char *)) {
+        return units_names[unit];
+    }
+    return "";
+}
+
+double unit_divider(uint32_t magnitude) {
+    if (magnitude < sizeof(unit_dividers) / sizeof(double)) {
+        return unit_dividers[magnitude];
+    }
+    return 1.0;
+}
+
 static_assert(sizeof(double) == 8, "Error: doubles must be 64-bit.");
 
 int main(int argc, char *argv[]) {
@@ -97,78 +124,93 @@ int main(int argc, char *argv[]) {
     int32_t ch3_on = *((int32_t *) (input_data + OFFSET_TO_CH3_ON));
     int32_t ch4_on = *((int32_t *) (input_data + OFFSET_TO_CH4_ON));
 
-    double *ch1_volt_div_val = (double *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL);
-    uint32_t *ch1_volt_div_val_units = (uint32_t *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL_UNITS);
-    uint32_t *ch1_volt_div_val_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL_UNITS_MAGNITUDE);
+    double ch1_volt_div_val = *((double *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL));
+    //uint32_t ch1_volt_div_val_units = *((uint32_t *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL_UNITS));
+    uint32_t ch1_volt_div_val_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH1_VOLT_DIV_VAL_UNITS_MAGNITUDE));
 
-    double *ch2_volt_div_val = (double *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL);
-    uint32_t *ch2_volt_div_val_units = (uint32_t *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL_UNITS);
-    uint32_t *ch2_volt_div_val_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL_UNITS_MAGNITUDE);
+    double ch2_volt_div_val = *((double *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL));
+    //uint32_t ch2_volt_div_val_units = *((uint32_t *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL_UNITS));
+    uint32_t ch2_volt_div_val_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH2_VOLT_DIV_VAL_UNITS_MAGNITUDE));
 
-    double *ch3_volt_div_val = (double *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL);
-    uint32_t *ch3_volt_div_val_units = (uint32_t *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL_UNITS);
-    uint32_t *ch3_volt_div_val_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL_UNITS_MAGNITUDE);
+    double ch3_volt_div_val = *((double *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL));
+    //uint32_t ch3_volt_div_val_units = *((uint32_t *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL_UNITS));
+    uint32_t ch3_volt_div_val_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH3_VOLT_DIV_VAL_UNITS_MAGNITUDE));
 
-    double *ch4_volt_div_val = (double *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL);
-    uint32_t *ch4_volt_div_val_units = (uint32_t *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL_UNITS);
-    uint32_t *ch4_volt_div_val_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL_UNITS_MAGNITUDE);
+    double ch4_volt_div_val = *((double *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL));
+    //uint32_t ch4_volt_div_val_units = *((uint32_t *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL_UNITS));
+    uint32_t ch4_volt_div_val_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH4_VOLT_DIV_VAL_UNITS_MAGNITUDE));
 
     double ch1_vert_offset = *((double *) (input_data + OFFSET_TO_CH1_VERT_OFFSET));
-    uint32_t *ch1_vert_offset_units = (uint32_t *) (input_data + OFFSET_TO_CH1_VERT_OFFSET_UNITS);
-    uint32_t *ch1_vert_offset_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH1_VERT_OFFSET_UNITS_MAGNITUDE);
+    uint32_t ch1_vert_offset_units = *((uint32_t *) (input_data + OFFSET_TO_CH1_VERT_OFFSET_UNITS));
+    uint32_t ch1_vert_offset_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH1_VERT_OFFSET_UNITS_MAGNITUDE));
 
     double ch2_vert_offset = *((double *) (input_data + OFFSET_TO_CH2_VERT_OFFSET));
-    uint32_t *ch2_vert_offset_units = (uint32_t *) (input_data + OFFSET_TO_CH2_VERT_OFFSET_UNITS);
-    uint32_t *ch2_vert_offset_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH2_VERT_OFFSET_UNITS_MAGNITUDE);
+    uint32_t ch2_vert_offset_units = *((uint32_t *) (input_data + OFFSET_TO_CH2_VERT_OFFSET_UNITS));
+    uint32_t ch2_vert_offset_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH2_VERT_OFFSET_UNITS_MAGNITUDE));
 
     double ch3_vert_offset = *((double *) (input_data + OFFSET_TO_CH3_VERT_OFFSET));
-    uint32_t *ch3_vert_offset_units = (uint32_t *) (input_data + OFFSET_TO_CH3_VERT_OFFSET_UNITS);
-    uint32_t *ch3_vert_offset_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH3_VERT_OFFSET_UNITS_MAGNITUDE);
+    uint32_t ch3_vert_offset_units = *((uint32_t *) (input_data + OFFSET_TO_CH3_VERT_OFFSET_UNITS));
+    uint32_t ch3_vert_offset_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH3_VERT_OFFSET_UNITS_MAGNITUDE));
 
     double ch4_vert_offset = *((double *) (input_data + OFFSET_TO_CH4_VERT_OFFSET));
-    uint32_t *ch4_vert_offset_units = (uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS);
-    uint32_t *ch4_vert_offset_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS_MAGNITUDE);
+    uint32_t ch4_vert_offset_units = *((uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS));
+    uint32_t ch4_vert_offset_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS_MAGNITUDE));
 
-    uint32_t *digital_on = (uint32_t *) (input_data + OFFSET_TO_DIGITAL_ON);
+    /*
+    uint32_t digital_on = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_ON));
 
-    uint32_t *d0_on = (uint32_t *) (input_data + OFFSET_TO_D0_ON);
-    uint32_t *d1_on = (uint32_t *) (input_data + OFFSET_TO_D1_ON);
-    uint32_t *d2_on = (uint32_t *) (input_data + OFFSET_TO_D2_ON);
-    uint32_t *d3_on = (uint32_t *) (input_data + OFFSET_TO_D3_ON);
-    uint32_t *d4_on = (uint32_t *) (input_data + OFFSET_TO_D4_ON);
-    uint32_t *d5_on = (uint32_t *) (input_data + OFFSET_TO_D5_ON);
-    uint32_t *d6_on = (uint32_t *) (input_data + OFFSET_TO_D6_ON);
-    uint32_t *d7_on = (uint32_t *) (input_data + OFFSET_TO_D7_ON);
-    uint32_t *d8_on = (uint32_t *) (input_data + OFFSET_TO_D8_ON);
-    uint32_t *d9_on = (uint32_t *) (input_data + OFFSET_TO_D9_ON);
-    uint32_t *d10_on = (uint32_t *) (input_data + OFFSET_TO_D10_ON);
-    uint32_t *d11_on = (uint32_t *) (input_data + OFFSET_TO_D11_ON);
-    uint32_t *d12_on = (uint32_t *) (input_data + OFFSET_TO_D12_ON);
-    uint32_t *d13_on = (uint32_t *) (input_data + OFFSET_TO_D13_ON);
-    uint32_t *d14_on = (uint32_t *) (input_data + OFFSET_TO_D14_ON);
-    uint32_t *d15_on = (uint32_t *) (input_data + OFFSET_TO_D15_ON);
+    uint32_t d0_on = *((uint32_t *) (input_data + OFFSET_TO_D0_ON));
+    uint32_t d1_on = *((uint32_t *) (input_data + OFFSET_TO_D1_ON));
+    uint32_t d2_on = *((uint32_t *) (input_data + OFFSET_TO_D2_ON));
+    uint32_t d3_on = *((uint32_t *) (input_data + OFFSET_TO_D3_ON));
+    uint32_t d4_on = *((uint32_t *) (input_data + OFFSET_TO_D4_ON));
+    uint32_t d5_on = *((uint32_t *) (input_data + OFFSET_TO_D5_ON));
+    uint32_t d6_on = *((uint32_t *) (input_data + OFFSET_TO_D6_ON));
+    uint32_t d7_on = *((uint32_t *) (input_data + OFFSET_TO_D7_ON));
+    uint32_t d8_on = *((uint32_t *) (input_data + OFFSET_TO_D8_ON));
+    uint32_t d9_on = *((uint32_t *) (input_data + OFFSET_TO_D9_ON));
+    uint32_t d10_on = *((uint32_t *) (input_data + OFFSET_TO_D10_ON));
+    uint32_t d11_on = *((uint32_t *) (input_data + OFFSET_TO_D11_ON));
+    uint32_t d12_on = *((uint32_t *) (input_data + OFFSET_TO_D12_ON));
+    uint32_t d13_on = *((uint32_t *) (input_data + OFFSET_TO_D13_ON));
+    uint32_t d14_on = *((uint32_t *) (input_data + OFFSET_TO_D14_ON));
+    uint32_t d15_on = *((uint32_t *) (input_data + OFFSET_TO_D15_ON));
+    */
 
-    double *time_div = (double *) (input_data + OFFSET_TO_TIME_DIV);
-    uint32_t *time_div_units = (uint32_t *) (input_data + OFFSET_TO_TIME_DIV_UNITS);
-    uint32_t *time_div_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_TIME_DIV_UNITS_MAGNITUDE);
+    double time_div = *((double *) (input_data + OFFSET_TO_TIME_DIV));
+    //uint32_t time_div_units = *((uint32_t *) (input_data + OFFSET_TO_TIME_DIV_UNITS));
+    //uint32_t time_div_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_TIME_DIV_UNITS_MAGNITUDE));
 
-    double *time_delay = (double *) (input_data + OFFSET_TO_TIME_DELAY);
-    uint32_t *time_delay_units = (uint32_t *) (input_data + OFFSET_TO_TIME_DELAY_UNITS);
-    uint32_t *time_delay_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_TIME_DELAY_UNITS_MAGNITUDE);
+    //double time_delay = *((double *) (input_data + OFFSET_TO_TIME_DELAY));
+    //uint32_t time_delay_units = *((uint32_t *) (input_data + OFFSET_TO_TIME_DELAY_UNITS));
+    //uint32_t time_delay_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_TIME_DELAY_UNITS_MAGNITUDE));
 
     uint32_t wave_length = *((uint32_t *) (input_data + OFFSET_TO_WAVE_LENGTH));
 
-    double *sample_rate = (double *) (input_data + OFFSET_TO_SAMPLE_RATE);
-    uint32_t *sample_rate_units = (uint32_t *) (input_data + OFFSET_TO_SAMPLE_RATE_UNITS);
-    uint32_t *sample_rate_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_SAMPLE_RATE_UNITS_MAGNITUDE);
+    double sample_rate = *((double *) (input_data + OFFSET_TO_SAMPLE_RATE));
+    uint32_t sample_rate_units = *((uint32_t *) (input_data + OFFSET_TO_SAMPLE_RATE_UNITS));
+    uint32_t sample_rate_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_SAMPLE_RATE_UNITS_MAGNITUDE));
 
-    uint32_t *digital_wave_length = (uint32_t *) (input_data + OFFSET_TO_DIGITAL_WAVE_LENGTH);
+    //uint32_t digital_wave_length = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_WAVE_LENGTH));
 
-    double *digital_sample_rate = (double *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE);
-    uint32_t *digital_sample_rate_units = (uint32_t *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE_UNITS);
-    uint32_t *digital_sample_rate_units_magnitude = (uint32_t *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE_UNITS_MAGNITUDE);
+    //double digital_sample_rate = *((double *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE));
+    //uint32_t digital_sample_rate_units = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE_UNITS));
+    //uint32_t digital_sample_rate_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE_UNITS_MAGNITUDE));
 
-    printf("Sample rate: %f\n", *sample_rate);
+    printf("Sample rate (if no units are shown, defaults to Hertz): %f %s%s\n", sample_rate, unit_magnitude_prefix(sample_rate_units_magnitude), unit_name(sample_rate_units));
+    printf("Channels (if no units are shown, defaults to Volts):\n");
+    if (ch1_on) {
+        printf("CH1 - Vertical offset %f %s%s\n", ch1_vert_offset, unit_magnitude_prefix(ch1_vert_offset_units_magnitude), unit_name(ch1_vert_offset_units));
+    }
+    if (ch2_on) {
+        printf("CH2 - Vertical offset %f %s%s\n", ch2_vert_offset, unit_magnitude_prefix(ch2_vert_offset_units_magnitude), unit_name(ch2_vert_offset_units));
+    }
+    if (ch3_on) {
+        printf("CH3 - Vertical offset %f %s%s\n", ch3_vert_offset, unit_magnitude_prefix(ch3_vert_offset_units_magnitude), unit_name(ch3_vert_offset_units));
+    }
+    if (ch4_on) {
+        printf("CH4 - Vertical offset %f %s%s\n", ch4_vert_offset, unit_magnitude_prefix(ch4_vert_offset_units_magnitude), unit_name(ch4_vert_offset_units));
+    }
 
     uint8_t *ch1_data_offset;
     uint8_t *ch2_data_offset;
@@ -221,19 +263,13 @@ int main(int argc, char *argv[]) {
         csv_line_length = 51;
     }
 
-    /*
-    double ch1_scaling_factor = *ch1_volt_div_val / 1000.0 / CODE_PER_DIV;
-    double ch2_scaling_factor = *ch2_volt_div_val / 1000.0 / CODE_PER_DIV;
-    double ch3_scaling_factor = *ch3_volt_div_val / 1000.0 / CODE_PER_DIV;
-    double ch4_scaling_factor = *ch4_volt_div_val / 1000.0 / CODE_PER_DIV;
-    */
-    double ch1_scaling_factor = *ch1_volt_div_val / CODE_PER_DIV;
-    double ch2_scaling_factor = *ch2_volt_div_val / CODE_PER_DIV;
-    double ch3_scaling_factor = *ch3_volt_div_val / CODE_PER_DIV;
-    double ch4_scaling_factor = *ch4_volt_div_val / CODE_PER_DIV;
+    double ch1_scaling_factor = ch1_volt_div_val / unit_divider(ch1_volt_div_val_units_magnitude) / CODE_PER_DIV;
+    double ch2_scaling_factor = ch2_volt_div_val / unit_divider(ch2_volt_div_val_units_magnitude) / CODE_PER_DIV;
+    double ch3_scaling_factor = ch3_volt_div_val / unit_divider(ch3_volt_div_val_units_magnitude) / CODE_PER_DIV;
+    double ch4_scaling_factor = ch4_volt_div_val / unit_divider(ch4_volt_div_val_units_magnitude) / CODE_PER_DIV;
 
-    double time_offset = -(*time_div * 14.0 / 2.0);
-    double time_scaling_factor = (1.0 / *sample_rate);
+    double time_offset = -(time_div * 14.0 / 2.0);
+    double time_scaling_factor = (1.0 / sample_rate);
 
     output_file_buffer = calloc(wave_length, csv_line_length);
     size_t output_file_buffer_length = wave_length * csv_line_length;
