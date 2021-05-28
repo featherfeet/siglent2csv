@@ -1,0 +1,23 @@
+Before changing timestamp calculation to not use a multiply:
+5.564s
+5.547s
+5.630s
+
+After changing timestamp calculation to not use a multiply:
+5.679s
+5.553s
+5.654s
+
+Before removing ifs in the loop (average 5.7048s):
+5.578s
+5.804s
+5.685s
+5.834s
+5.623s
+
+After removing ifs in the loop (average 5.6148s):
+5.583s
+5.584s
+5.592s
+5.739s
+5.576s

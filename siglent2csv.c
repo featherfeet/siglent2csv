@@ -275,8 +275,10 @@ int main(int argc, char *argv[]) {
     size_t output_file_buffer_length = wave_length * csv_line_length;
     char *output_pointer = output_file_buffer;
 
+    double timestamp = time_offset;
+
     for (uint32_t i = 0; i < wave_length; i++) {
-        double timestamp = time_offset + time_scaling_factor * i;
+        timestamp += time_scaling_factor;
 
         double channel_values[4];
         uint8_t channel_values_index = 0;
@@ -313,6 +315,7 @@ int main(int argc, char *argv[]) {
         else if (enabled_analog_channels == 4) {
             snprintf(output_pointer, csv_line_length + 1, format_string, timestamp, channel_values[0], channel_values[1], channel_values[2], channel_values[3]);
         }
+
         output_pointer += csv_line_length;
     }
 
