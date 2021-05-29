@@ -275,12 +275,12 @@ int main(int argc, char *argv[]) {
     size_t output_file_buffer_length = wave_length * csv_line_length;
     char *output_pointer = output_file_buffer;
 
+    double channel_values[4];
     double timestamp = time_offset;
 
     for (uint32_t i = 0; i < wave_length; i++) {
         timestamp += time_scaling_factor;
 
-        double channel_values[4];
         uint8_t channel_values_index = 0;
         if (ch1_on) {
             //channel_values[channel_values_index] = (ch1_data_offset[i] - 128) * ch1_scaling_factor + ch1_vert_offset;

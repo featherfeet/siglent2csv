@@ -21,3 +21,9 @@ After removing ifs in the loop (average 5.6148s):
 5.592s
 5.739s
 5.576s
+
+Before moving array out of loop:
+(5.876 + 5.739 + 5.721 + 5.897 + 5.742) / 5.0 = 
+
+After moving array out of loop:
+(5.942 + 5.882 + 5.767 + 5.865 + 5.928) / 5.0 =
