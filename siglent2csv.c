@@ -8,13 +8,119 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
+#include <pthread.h>
 #include "siglent2csv.h"
+
+#define NUM_THREADS 24
+
+#define BILLION 1000000000.0
 
 int input_file = -1;
 uint8_t *input_data = NULL;
 off_t input_size = -1;
 char *output_file_buffer = NULL;
 FILE *output_file = NULL;
+
+struct ConversionTask {
+    // Beginning and size of the task.
+    uint32_t start_index;
+    uint32_t length;
+    // Pointer to the previous task, used to free the ConversionTask structures at the end.
+    struct ConversionTask *previous_task;
+    // Pthread thread running this task.
+    pthread_t thread;
+    // Various parameters read from the file that are necessary for the converter.
+    double time_offset;
+    double time_scaling_factor;
+    uint8_t *ch1_data_offset;
+    uint8_t *ch2_data_offset;
+    uint8_t *ch3_data_offset;
+    uint8_t *ch4_data_offset;
+    double ch1_scaling_factor;
+    double ch2_scaling_factor;
+    double ch3_scaling_factor;
+    double ch4_scaling_factor;
+    uint8_t csv_line_length;
+    const char *format_string;
+    char *output_pointer;
+    uint8_t enabled_analog_channels;
+    int32_t ch1_on;
+    int32_t ch2_on;
+    int32_t ch3_on;
+    int32_t ch4_on;
+};
+
+void *conversion_thread(void *ptr) {
+    struct ConversionTask *conversion_task = (struct ConversionTask *) ptr;
+    uint32_t start_index = conversion_task->start_index;
+    uint32_t length = conversion_task->length;
+    double time_offset = conversion_task->time_offset;
+    double time_scaling_factor = conversion_task->time_scaling_factor;
+    uint8_t *ch1_data_offset = conversion_task->ch1_data_offset;
+    uint8_t *ch2_data_offset = conversion_task->ch2_data_offset;
+    uint8_t *ch3_data_offset = conversion_task->ch3_data_offset;
+    uint8_t *ch4_data_offset = conversion_task->ch4_data_offset;
+    double ch1_scaling_factor = conversion_task->ch1_scaling_factor;
+    double ch2_scaling_factor = conversion_task->ch2_scaling_factor;
+    double ch3_scaling_factor = conversion_task->ch3_scaling_factor;
+    double ch4_scaling_factor = conversion_task->ch4_scaling_factor;
+    uint8_t csv_line_length = conversion_task->csv_line_length;
+    const char *format_string = conversion_task->format_string;
+    char *output_pointer = conversion_task->output_pointer;
+    uint8_t enabled_analog_channels = conversion_task->enabled_analog_channels;
+    int32_t ch1_on = conversion_task->ch1_on;
+    int32_t ch2_on = conversion_task->ch2_on;
+    int32_t ch3_on = conversion_task->ch3_on;
+    int32_t ch4_on = conversion_task->ch4_on;
+
+    double channel_values[4];
+    double timestamp = time_offset + start_index * time_scaling_factor;
+
+    for (uint32_t i = start_index; i < start_index + length; i++) {
+        timestamp += time_scaling_factor;
+
+        uint8_t channel_values_index = 0;
+        if (ch1_on) {
+            //channel_values[channel_values_index] = (ch1_data_offset[i] - 128) * ch1_scaling_factor + ch1_vert_offset;
+            channel_values[channel_values_index] = (ch1_data_offset[i] - 128) * ch1_scaling_factor;
+            channel_values_index++;
+        }
+        if (ch2_on) {
+            //channel_values[channel_values_index] = (ch2_data_offset[i] - 128) * ch2_scaling_factor + ch2_vert_offset;
+            channel_values[channel_values_index] = (ch2_data_offset[i] - 128) * ch2_scaling_factor;
+            channel_values_index++;
+        }
+        if (ch3_on) {
+            //channel_values[channel_values_index] = (ch3_data_offset[i] - 128) * ch3_scaling_factor + ch3_vert_offset;
+            channel_values[channel_values_index] = (ch3_data_offset[i] - 128) * ch3_scaling_factor;
+            channel_values_index++;
+        }
+        if (ch4_on) {
+            //channel_values[channel_values_index] = (ch4_data_offset[i] - 128) * ch4_scaling_factor + ch4_vert_offset;
+            channel_values[channel_values_index] = (ch4_data_offset[i] - 128) * ch4_scaling_factor;
+            channel_values_index++;
+        }
+
+        if (enabled_analog_channels == 1) {
+            snprintf(output_pointer, csv_line_length, format_string, timestamp, channel_values[0]);
+        }
+        else if (enabled_analog_channels == 2) {
+            snprintf(output_pointer, csv_line_length, format_string, timestamp, channel_values[0], channel_values[1]);
+        }
+        else if (enabled_analog_channels == 3) {
+            snprintf(output_pointer, csv_line_length, format_string, timestamp, channel_values[0], channel_values[1], channel_values[2]);
+        }
+        else if (enabled_analog_channels == 4) {
+            snprintf(output_pointer, csv_line_length, format_string, timestamp, channel_values[0], channel_values[1], channel_values[2], channel_values[3]);
+        }
+        output_pointer[csv_line_length - 1] = '\n';
+
+        output_pointer += csv_line_length;
+    }
+
+    return 0;
+}
 
 void cleanup() {
     if (input_data) {
@@ -247,19 +353,19 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     else if (enabled_analog_channels == 1) {
-        format_string = "% .11f,% 6f\n";
+        format_string = "% .11f,% 6f";
         csv_line_length = 27;
     }
     else if (enabled_analog_channels == 2) {
-        format_string = "% .11f,% 6f,% 6f\n";
+        format_string = "% .11f,% 6f,% 6f";
         csv_line_length = 35;
     }
     else if (enabled_analog_channels == 3) {
-        format_string = "% .11f,% 6f,% 6f,% 6f\n";
+        format_string = "% .11f,% 6f,% 6f,% 6f";
         csv_line_length = 43;
     }
     else if (enabled_analog_channels == 4) {
-        format_string = "% .11f,% 6f,% 6f,% 6f,% 6f\n";
+        format_string = "% .11f,% 6f,% 6f,% 6f,% 6f";
         csv_line_length = 51;
     }
 
@@ -271,54 +377,80 @@ int main(int argc, char *argv[]) {
     double time_offset = -(time_div * 14.0 / 2.0);
     double time_scaling_factor = (1.0 / sample_rate);
 
-    output_file_buffer = calloc(wave_length, csv_line_length);
+    output_file_buffer = malloc(wave_length * csv_line_length + 1); // + 1 is for the \0 terminator on the end of the last snprintf() output.
     size_t output_file_buffer_length = wave_length * csv_line_length;
     char *output_pointer = output_file_buffer;
 
-    double channel_values[4];
-    double timestamp = time_offset;
-
+    //===========================================================================
+    /*
+    clock_t start = clock();
+    double sum = 0.0;
     for (uint32_t i = 0; i < wave_length; i++) {
-        timestamp += time_scaling_factor;
-
-        uint8_t channel_values_index = 0;
-        if (ch1_on) {
-            //channel_values[channel_values_index] = (ch1_data_offset[i] - 128) * ch1_scaling_factor + ch1_vert_offset;
-            channel_values[channel_values_index] = (ch1_data_offset[i] - 128) * ch1_scaling_factor;
-            channel_values_index++;
-        }
-        if (ch2_on) {
-            //channel_values[channel_values_index] = (ch2_data_offset[i] - 128) * ch2_scaling_factor + ch2_vert_offset;
-            channel_values[channel_values_index] = (ch2_data_offset[i] - 128) * ch2_scaling_factor;
-            channel_values_index++;
-        }
-        if (ch3_on) {
-            //channel_values[channel_values_index] = (ch3_data_offset[i] - 128) * ch3_scaling_factor + ch3_vert_offset;
-            channel_values[channel_values_index] = (ch3_data_offset[i] - 128) * ch3_scaling_factor;
-            channel_values_index++;
-        }
-        if (ch4_on) {
-            //channel_values[channel_values_index] = (ch4_data_offset[i] - 128) * ch4_scaling_factor + ch4_vert_offset;
-            channel_values[channel_values_index] = (ch4_data_offset[i] - 128) * ch4_scaling_factor;
-            channel_values_index++;
-        }
-
-        if (enabled_analog_channels == 1) {
-            snprintf(output_pointer, csv_line_length + 1, format_string, timestamp, channel_values[0]);
-        }
-        else if (enabled_analog_channels == 2) {
-            snprintf(output_pointer, csv_line_length + 1, format_string, timestamp, channel_values[0], channel_values[1]);
-        }
-        else if (enabled_analog_channels == 3) {
-            snprintf(output_pointer, csv_line_length + 1, format_string, timestamp, channel_values[0], channel_values[1], channel_values[2]);
-        }
-        else if (enabled_analog_channels == 4) {
-            snprintf(output_pointer, csv_line_length + 1, format_string, timestamp, channel_values[0], channel_values[1], channel_values[2], channel_values[3]);
-        }
-
-        output_pointer += csv_line_length;
+        sum += (ch1_data_offset[i] - 128) * ch1_scaling_factor;
     }
+    clock_t end = clock();
+    printf("Sum: %f\n", sum);
+    printf("Average: %f\n", sum / (double) wave_length);
+    double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("Summing all values for CH1 took %f seconds.\n", cpu_time_used);
+    */
+    //===========================================================================
 
+    struct timespec start, end;
+    clock_gettime(CLOCK_REALTIME, &start);
+    uint32_t maximum_task_size = wave_length / NUM_THREADS;
+    uint32_t start_index = 0;
+    uint32_t task_size = 0;
+    struct ConversionTask *previous_task = NULL;
+    while (start_index < wave_length) {
+        // Calculate the size of this conversion task.
+        if (start_index + maximum_task_size < wave_length) {
+            task_size = maximum_task_size; 
+        }
+        else {
+            task_size = wave_length - start_index;
+        }
+
+        // Set parameters of the conversion task.
+        struct ConversionTask *conversion_task = calloc(1, sizeof(struct ConversionTask));
+        conversion_task->start_index = start_index;
+        conversion_task->length = task_size;
+        conversion_task->time_offset = time_offset;
+        conversion_task->time_scaling_factor = time_scaling_factor;
+        conversion_task->ch1_data_offset = ch1_data_offset;
+        conversion_task->ch2_data_offset = ch2_data_offset;
+        conversion_task->ch3_data_offset = ch3_data_offset;
+        conversion_task->ch4_data_offset = ch4_data_offset;
+        conversion_task->ch1_scaling_factor = ch1_scaling_factor;
+        conversion_task->ch2_scaling_factor = ch2_scaling_factor;
+        conversion_task->ch3_scaling_factor = ch3_scaling_factor;
+        conversion_task->ch4_scaling_factor = ch4_scaling_factor;
+        conversion_task->csv_line_length = csv_line_length;
+        conversion_task->format_string = format_string;
+        conversion_task->output_pointer = output_pointer + start_index * csv_line_length;
+        conversion_task->enabled_analog_channels = enabled_analog_channels;
+        conversion_task->ch1_on = ch1_on;
+        conversion_task->ch2_on = ch2_on;
+        conversion_task->ch3_on = ch3_on;
+        conversion_task->ch4_on = ch4_on;
+        conversion_task->previous_task = previous_task;
+
+        // Start conversion thread.
+        pthread_create(&conversion_task->thread, NULL, conversion_thread, (void *) conversion_task);
+
+        // Get ready to create next conversion task.
+        previous_task = conversion_task;
+        start_index += maximum_task_size;
+    }
+    // Wait for conversion threads to finish.
+    for (struct ConversionTask *task = previous_task; task; task = task->previous_task) {
+        pthread_join(task->thread, NULL);
+    }
+    clock_gettime(CLOCK_REALTIME, &end);
+    double time_used = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+    printf("CSV data export took %f seconds.\n", time_used);
+
+    clock_gettime(CLOCK_REALTIME, &start);
     output_file = fopen(output_filename, "w");
     if (!output_file) {
         fprintf(stderr, "Failed to open file %s for writing: %s\n", output_filename, strerror(errno));
@@ -330,7 +462,21 @@ int main(int argc, char *argv[]) {
         cleanup();
         return EXIT_FAILURE;
     }
+    clock_gettime(CLOCK_REALTIME, &end);
+    time_used = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+    printf("CSV data write took %f seconds.\n", time_used);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    struct ConversionTask *task = previous_task;
+    while (task != NULL) {
+        struct ConversionTask *temp = task;
+        task = task->previous_task;
+        free(temp);
+    }
     cleanup();
+    clock_gettime(CLOCK_REALTIME, &end);
+    time_used = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+    printf("Resource cleanup took %f seconds.\n", time_used);
+
     return 0;
 }
