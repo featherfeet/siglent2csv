@@ -4,7 +4,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
+
+#ifdef WIN32
+    #include <windows.h>
+#else
+    #include <sys/mman.h>
+#endif
+
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -12,7 +18,7 @@
 #include <pthread.h>
 #include "siglent2csv.h"
 
-#define NUM_THREADS 24
+#define NUM_THREADS 8
 
 #define BILLION 1000000000.0
 
@@ -124,7 +130,11 @@ void *conversion_thread(void *ptr) {
 
 void cleanup() {
     if (input_data) {
-        munmap(input_data, input_size);
+        #ifdef WIN32
+            UnmapViewOfFile(input_data);
+        #else
+            munmap(input_data, input_size);
+        #endif
         input_data = NULL;
     }
     if (input_file >= 0) {
@@ -214,15 +224,22 @@ int main(int argc, char *argv[]) {
     }
 
     // Memory-map input file.
-    input_data = mmap(NULL, input_size, PROT_READ, MAP_PRIVATE | MAP_HUGETLB, input_file, 0);
-    if (input_data == MAP_FAILED) {
-        input_data = mmap(NULL, input_size, PROT_READ, MAP_PRIVATE, input_file, 0);
+    #ifdef WIN32
+        HANDLE file_mapping;
+        HANDLE handle = (HANDLE) _get_osfhandle(input_file);
+        file_mapping = CreateFileMapping(handle, NULL, PAGE_READONLY, 0, 0, NULL);
+        input_data = MapViewOfFile(file_mapping, FILE_MAP_READ, 0, 0, input_size);
+    #else
+        input_data = mmap(NULL, input_size, PROT_READ, MAP_PRIVATE | MAP_HUGETLB, input_file, 0);
         if (input_data == MAP_FAILED) {
-            fprintf(stderr, "Failed to memory-map file %s: %s\n", input_filename, strerror(errno));
-            cleanup();
-            return EXIT_FAILURE;
+            input_data = mmap(NULL, input_size, PROT_READ, MAP_PRIVATE, input_file, 0);
+            if (input_data == MAP_FAILED) {
+                fprintf(stderr, "Failed to memory-map file %s: %s\n", input_filename, strerror(errno));
+                cleanup();
+                return EXIT_FAILURE;
+            }
         }
-    }
+    #endif
 
     // Parse input_data.
     int32_t ch1_on = *((int32_t *) (input_data + OFFSET_TO_CH1_ON));
