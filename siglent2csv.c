@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include "siglent2csv.h"
 
-#define NUM_THREADS 24
+#define NUM_THREADS 8
 
 #define BILLION 1000000000.0
 
