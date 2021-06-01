@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include "siglent2csv.h"
 
-#define NUM_THREADS 8
+#define NUM_THREADS 24
 
 #define BILLION 1000000000.0
 
@@ -47,6 +47,10 @@ struct ConversionTask {
     double ch2_scaling_factor;
     double ch3_scaling_factor;
     double ch4_scaling_factor;
+    double ch1_vert_offset;
+    double ch2_vert_offset;
+    double ch3_vert_offset;
+    double ch4_vert_offset;
     uint8_t csv_line_length;
     const char *format_string;
     char *output_pointer;
@@ -71,6 +75,10 @@ void *conversion_thread(void *ptr) {
     double ch2_scaling_factor = conversion_task->ch2_scaling_factor;
     double ch3_scaling_factor = conversion_task->ch3_scaling_factor;
     double ch4_scaling_factor = conversion_task->ch4_scaling_factor;
+    double ch1_vert_offset = conversion_task->ch1_vert_offset;
+    double ch2_vert_offset = conversion_task->ch2_vert_offset;
+    double ch3_vert_offset = conversion_task->ch3_vert_offset;
+    double ch4_vert_offset = conversion_task->ch4_vert_offset;
     uint8_t csv_line_length = conversion_task->csv_line_length;
     const char *format_string = conversion_task->format_string;
     char *output_pointer = conversion_task->output_pointer;
@@ -449,6 +457,10 @@ int main(int argc, char *argv[]) {
         conversion_task->ch2_scaling_factor = ch2_scaling_factor;
         conversion_task->ch3_scaling_factor = ch3_scaling_factor;
         conversion_task->ch4_scaling_factor = ch4_scaling_factor;
+        conversion_task->ch1_vert_offset = ch1_vert_offset;
+        conversion_task->ch2_vert_offset = ch2_vert_offset;
+        conversion_task->ch3_vert_offset = ch3_vert_offset;
+        conversion_task->ch4_vert_offset = ch4_vert_offset;
         conversion_task->csv_line_length = csv_line_length;
         conversion_task->format_string = format_string;
         conversion_task->output_pointer = output_pointer + start_index * csv_line_length;
