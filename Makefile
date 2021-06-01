@@ -1,5 +1,5 @@
 siglent2csv: siglent2csv.c siglent2csv.h
-	gcc -Ofast -Wall -Wpedantic -o siglent2csv siglent2csv.c -lpthread
+	gcc -Ofast -march=native -Wall -Wpedantic -o siglent2csv siglent2csv.c -lpthread
 debug: siglent2csv.c siglent2csv.h
 	gcc -g -O0 -Wall -Wpedantic -o siglent2csv siglent2csv.c -lpthread
 asan: siglent2csv.c siglent2csv.h

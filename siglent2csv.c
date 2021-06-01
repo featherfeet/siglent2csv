@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include "siglent2csv.h"
 
-#define NUM_THREADS 8
+#define NUM_THREADS 24
 
 #define BILLION 1000000000.0
 
@@ -321,6 +321,7 @@ int main(int argc, char *argv[]) {
     //uint32_t digital_sample_rate_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_SAMPLE_RATE_UNITS_MAGNITUDE));
 
     printf("Sample rate (if no units are shown, defaults to Hertz): %f %s%s\n", sample_rate, unit_magnitude_prefix(sample_rate_units_magnitude), unit_name(sample_rate_units));
+    printf("Number of samples: %u\n", wave_length);
     printf("Channels (if no units are shown, defaults to Volts):\n");
     if (ch1_on) {
         printf("CH1 - Vertical offset %f %s%s\n", ch1_vert_offset, unit_magnitude_prefix(ch1_vert_offset_units_magnitude), unit_name(ch1_vert_offset_units));
@@ -360,6 +361,12 @@ int main(int argc, char *argv[]) {
         ch4_data_offset = data_offset_counter;
         data_offset_counter += wave_length;
         enabled_analog_channels++;
+    }
+
+    if (OFFSET_TO_ANALOG_DATA + wave_length * enabled_analog_channels > input_size) {
+        fprintf(stderr, "Error: Incomplete/truncated input file.\n");
+        cleanup();
+        return EXIT_FAILURE;
     }
 
     const char *format_string;
