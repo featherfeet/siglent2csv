@@ -287,9 +287,9 @@ int main(int argc, char *argv[]) {
     uint32_t ch4_vert_offset_units = *((uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS));
     uint32_t ch4_vert_offset_units_magnitude = *((uint32_t *) (input_data + OFFSET_TO_CH4_VERT_OFFSET_UNITS_MAGNITUDE));
 
-    /*
     uint32_t digital_on = *((uint32_t *) (input_data + OFFSET_TO_DIGITAL_ON));
 
+    /*
     uint32_t d0_on = *((uint32_t *) (input_data + OFFSET_TO_D0_ON));
     uint32_t d1_on = *((uint32_t *) (input_data + OFFSET_TO_D1_ON));
     uint32_t d2_on = *((uint32_t *) (input_data + OFFSET_TO_D2_ON));
@@ -331,17 +331,36 @@ int main(int argc, char *argv[]) {
     printf("Sample rate (if no units are shown, defaults to Hertz): %f %s%s\n", sample_rate, unit_magnitude_prefix(sample_rate_units_magnitude), unit_name(sample_rate_units));
     printf("Number of samples: %u\n", wave_length);
     printf("Channels (if no units are shown, defaults to Volts):\n");
+    uint8_t enabled_analog_channels = 0;
     if (ch1_on) {
         printf("CH1 - Vertical offset %f %s%s\n", ch1_vert_offset, unit_magnitude_prefix(ch1_vert_offset_units_magnitude), unit_name(ch1_vert_offset_units));
+        enabled_analog_channels++;
     }
     if (ch2_on) {
         printf("CH2 - Vertical offset %f %s%s\n", ch2_vert_offset, unit_magnitude_prefix(ch2_vert_offset_units_magnitude), unit_name(ch2_vert_offset_units));
+        enabled_analog_channels++;
     }
     if (ch3_on) {
         printf("CH3 - Vertical offset %f %s%s\n", ch3_vert_offset, unit_magnitude_prefix(ch3_vert_offset_units_magnitude), unit_name(ch3_vert_offset_units));
+        enabled_analog_channels++;
     }
     if (ch4_on) {
         printf("CH4 - Vertical offset %f %s%s\n", ch4_vert_offset, unit_magnitude_prefix(ch4_vert_offset_units_magnitude), unit_name(ch4_vert_offset_units));
+        enabled_analog_channels++;
+    }
+
+    if (OFFSET_TO_ANALOG_DATA + wave_length * enabled_analog_channels > input_size) {
+        fprintf(stderr, "Warning: File's reported number of samples is greater than actual number of samples stored. This appears to be a bug in how Siglent oscilloscopes save waveform data.\n");
+        if (!digital_on) {
+            fprintf(stderr, "However, since digital waveform data is not stored in this file, the analog data block is the last data block in the file, meaning that we can recalculate the correct number of samples from the file size.\n");
+            wave_length = (input_size - OFFSET_TO_ANALOG_DATA) / enabled_analog_channels;
+            fprintf(stderr, "New wave_length (number of samples): %u\n", wave_length);
+        }
+        else {
+            fprintf(stderr, "Error: Correct number of samples cannot be recalculated from file size because this file also contains digital waveform data after the analog data block.\n");
+            cleanup();
+            return EXIT_FAILURE;
+        }
     }
 
     uint8_t *ch1_data_offset;
@@ -349,32 +368,21 @@ int main(int argc, char *argv[]) {
     uint8_t *ch3_data_offset;
     uint8_t *ch4_data_offset;
     uint8_t *data_offset_counter = input_data + OFFSET_TO_ANALOG_DATA;
-    uint8_t enabled_analog_channels = 0;
     if (ch1_on) {
         ch1_data_offset = data_offset_counter;
         data_offset_counter += wave_length;
-        enabled_analog_channels++;
     }
     if (ch2_on) {
         ch2_data_offset = data_offset_counter;
         data_offset_counter += wave_length;
-        enabled_analog_channels++;
     }
     if (ch3_on) {
         ch3_data_offset = data_offset_counter;
         data_offset_counter += wave_length;
-        enabled_analog_channels++;
     }
     if (ch4_on) {
         ch4_data_offset = data_offset_counter;
         data_offset_counter += wave_length;
-        enabled_analog_channels++;
-    }
-
-    if (OFFSET_TO_ANALOG_DATA + wave_length * enabled_analog_channels > input_size) {
-        fprintf(stderr, "Error: Incomplete/truncated input file.\n");
-        cleanup();
-        return EXIT_FAILURE;
     }
 
     const char *format_string;
